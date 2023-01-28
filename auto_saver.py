@@ -1,56 +1,58 @@
-from tkinter import *
 import pystray
 import PIL.Image
 
 import pyautogui as pag
 import keyboard
-import time, sched, asyncio
 import threading
-
-
-# window = Tk()
-# window.title('Auto Saver')
-# window.geometry('300x200')
-# window.resizable(False, False)
-
-
-
 
 
 key = ['ctrl', 's']
 interval = 4
-schedule = sched.scheduler(time.time, time.sleep)
-thread = None
+saveThread = None
 
 def save():
-    global thread
+    global key, saveThread
 
     pag.hotkey(*key)
-    print('saved')
-    thread = threading.Timer(interval, save)
-    thread.start()
-#     schedule.enter(interval, 1, save, ())
-# schedule.enter(interval, 1, save, ())
+    saveThread = threading.Timer(interval, save)
+    saveThread.start()
 
 def on_clcik_start(icon, item):
-    # schedule.run()
     save()
 
 def on_click_change_key(icon, item):
-    print('changed key')
+    global key
+
+    key.clear()
+    key = keyboard.read_hotkey().split('+')
+    isKeyRight = pag.confirm('Is this key right? ' + '+'.join(key), 'Change Key', ['Yes', 'No'])
+
+    while isKeyRight != 'Yes':
+        key.clear()
+        key = keyboard.read_hotkey().split('+')
+        isKeyRight = pag.confirm('Is this key right? ' + '+'.join(key), 'Change Key', ['Yes', 'No'])
 
 def on_click_change_interval(icon, item):
-    print('changed interval')
+    global interval
+
+    while True:
+        try:
+            interval = int(pag.prompt('Enter interval', 'Change Interval'))
+        except ValueError:
+            pag.alert('Please enter a number', 'Change Interval')
+        else:
+            break
 
 def on_clcik_stop(icon, item):
-    global thread
+    global saveThread
 
-    thread.cancel()
-    print('stopped')
+    saveThread.cancel()
 
 def on_click_exit(icon, item):
     icon.visible = False
     tray.stop()
+
+
 
 icon = PIL.Image.open('./images/icon.ico')
 
@@ -61,10 +63,5 @@ tray = pystray.Icon(name='Auto Saver', icon=icon, title='Auto Saver', menu=pystr
     pystray.MenuItem('Stop', on_clcik_stop),
     pystray.MenuItem('Exit', on_click_exit),
 ))
-
-# thread = threading.Thread(tray.run())
-# thread.start()
-
-# window.mainloop()
 
 tray.run()
